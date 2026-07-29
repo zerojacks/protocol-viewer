@@ -1,0 +1,18 @@
+.kiro
+/target
+
+# WASM Web 构建产物
+web/www/pkg/
+web/www/dist/
+web/www/node_modules/
+web/www/.vite/
+web/www/bun.lockb
+web/www/package-lock.json
+web/www/yarn.lock
+
+# 保留文档文件
+!README.md
+!WASM_SETUP.md
+!QUICKSTART.md
+!BUILD_NOTES.md
+!SUMMARY.md

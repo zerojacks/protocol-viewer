@@ -1,0 +1,32 @@
+[package]
+name = "protocol-viewer-web"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# WASM 绑定
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Document",
+    "HtmlCanvasElement",
+    "WebGl2RenderingContext",
+] }
+console_error_panic_hook = "0.1"
+
+# GPUI 和 gpui-component
+gpui = { git = "https://github.com/zed-industries/zed" }
+gpui_platform = { git = "https://github.com/zed-industries/zed", features = ["font-kit"] }
+gpui-component = { git = "https://github.com/longbridge/gpui-component" }
+
+# 主项目
+protocol-viewer = { path = ".." }
+
+[profile.release]
+opt-level = "z"     # 优化大小
+lto = true          # 链接时优化
+codegen-units = 1   # 更好的优化

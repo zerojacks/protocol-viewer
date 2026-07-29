@@ -1,0 +1,25 @@
+[package]
+name = "protocol-viewer"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "protocol_viewer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "protocol-viewer"
+path = "src/main.rs"
+
+[dependencies]
+# GPUI 框架
+gpui = { git = "https://github.com/zed-industries/zed" }
+gpui_platform = { git = "https://github.com/zed-industries/zed", features = ["font-kit"] }
+gpui-component = { git = "https://github.com/longbridge/gpui-component" }
+
+# 协议解析器（只需要这一个！）
+protocol-parser = { path = "../protocol-parser/parser" }
+
+# 工具库
+anyhow = "1"
+rfd = "0.14"  # 文件对话框
