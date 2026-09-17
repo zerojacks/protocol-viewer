@@ -2,15 +2,20 @@
 
 use std::rc::Rc;
 
-use gpui::prelude::FluentBuilder;
-use gpui::*;
-use gpui_component::{
-    ActiveTheme, button::Button, h_flex, input::{Input, InputState}, label::Label, 
-    list::ListItem, tree::{TreeItem, TreeState, tree}, v_flex,
+use gpui_kit::prelude::FluentBuilder;
+use gpui_kit::*;
+use gpui_kit::component::{
+    h_flex, v_flex,
+    input::{Textarea, TextareaState, InputEvent},
+    list::ListItem,
+    tree::{tree, TreeState, TreeItem},
+    ActiveTheme,
 };
 
 use crate::row::{self, Row};
 
+/// 列宽百分比：[字段名, 数据, 说明]
+const COL_WIDTH_PERCENT: [f32; 3] = [0.30, 0.25, 0.45];  // 30%, 25%, 45%
 /// 列宽下限（像素）
 const MIN_COL_W: f32 = 80.0;
 
@@ -145,14 +150,14 @@ fn build_tree_prefix(tl: &TreeLineInfo, line_color: Hsla) -> Div {
     let lw = TREE_LINE_W;
     let hw = lw / 2.0;
 
-    let mut prefix = h_flex().flex_shrink_0();
+    let mut prefix = h_flex().flex_shrink_1();
 
     // 祖先延续线
     for k in 0..depth {
         let slot = div()
             .w(px(TREE_SLOT_W))
             .h(px(TREE_ROW_H))
-            .flex_shrink_0()
+            .flex_shrink_1()
             .relative();
 
         if tl.ancestor_continues.get(k).copied().unwrap_or(false) {
@@ -174,7 +179,7 @@ fn build_tree_prefix(tl: &TreeLineInfo, line_color: Hsla) -> Div {
     let slot = div()
         .w(px(TREE_SLOT_W))
         .h(px(TREE_ROW_H))
-        .flex_shrink_0()
+        .flex_shrink_1()
         .relative();
 
     if tl.is_last_child {
@@ -234,14 +239,14 @@ fn build_parent_prefix(tl: &TreeLineInfo, line_color: Hsla) -> Div {
     let lw = TREE_LINE_W;
     let hw = lw / 2.0;
 
-    let mut prefix = h_flex().flex_shrink_0();
+    let mut prefix = h_flex().flex_shrink_1();
 
     // 祖先延续线
     for k in 0..depth {
         let slot = div()
             .w(px(TREE_SLOT_W))
             .h(px(TREE_ROW_H))
-            .flex_shrink_0()
+            .flex_shrink_1()
             .relative();
 
         if tl.ancestor_continues.get(k).copied().unwrap_or(false) {
@@ -263,7 +268,7 @@ fn build_parent_prefix(tl: &TreeLineInfo, line_color: Hsla) -> Div {
     let slot = div()
         .w(px(TREE_SLOT_W))
         .h(px(TREE_ROW_H))
-        .flex_shrink_0()
+        .flex_shrink_1()
         .relative();
 
     if tl.is_last_child {
@@ -318,20 +323,24 @@ fn build_parent_prefix(tl: &TreeLineInfo, line_color: Hsla) -> Div {
 // ── 主结构体 ────────────────────────────────────────
 
 pub struct ProtocolViewerApp {
-    hex_input: Option<Entity<InputState>>,
+    hex_input: Option<Entity<TextareaState>>,
     rows: Rc<Vec<Row>>,
     tree_lines: Rc<Vec<TreeLineInfo>>,
     tree_state: Entity<TreeState>,
     error: Option<String>,
 
-    /// 三列宽度：[字段名, 数据, 说明]
-    col_widths: [f32; 3],
+    /// 三列宽度百分比偏移：[字段名, 数据, 说明]（相对于默认百分比的像素偏移）
+    col_width_offsets: [f32; 3],
     drag_state: Option<(usize, f32)>,
     
     /// 默认十六进制字符串
     default_hex: String,
     /// 是否已初始化
     initialized: bool,
+    /// 容器宽度（用于计算百分比）
+    container_width: f32,
+    /// 上次解析的内容（用于检测变化）
+    last_parsed_content: String,
 }
 
 impl ProtocolViewerApp {
@@ -346,23 +355,34 @@ impl ProtocolViewerApp {
             tree_lines: Rc::new(Vec::new()),
             tree_state,
             error: None,
-            col_widths: [320.0, 280.0, 450.0],
+            col_width_offsets: [0.0, 0.0, 0.0],
             drag_state: None,
             default_hex,
             initialized: false,
+            container_width: 1200.0,
+            last_parsed_content: String::new(),
         }
     }
     
     fn ensure_initialized(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if !self.initialized {
-            // 创建 InputState
             let default_value = self.default_hex.clone();
-            self.hex_input = Some(cx.new(|cx| {
-                InputState::new(window, cx)
-                    .placeholder("输入十六进制报文，可以带空格")
-                    .default_value(default_value)
-            }));
             
+            let hex_input = cx.new(|cx| {
+                TextareaState::new(window, cx)
+                    .placeholder("输入十六进制报文（支持空格和换行）")
+                    .default_value(default_value)
+                    .auto_grow(3, 10)  // 最小3行，最大10行
+            });
+            
+            // 订阅输入变化事件
+            cx.subscribe(&hex_input, |this, _state, event: &InputEvent, cx| {
+                if matches!(event, InputEvent::Change) {
+                    this.parse(cx);
+                }
+            }).detach();
+            
+            self.hex_input = Some(hex_input);
             self.initialized = true;
             
             // 初始解析
@@ -376,7 +396,7 @@ impl ProtocolViewerApp {
             None => return,
         };
         
-        let hex_str = hex_input.read(cx).value().to_string();
+        let hex_str = hex_input.read(cx).value();
 
         let result = (|| -> Result<Vec<Row>, String> {
             let bytes = parse_hex_bytes(&hex_str)?;
@@ -402,6 +422,8 @@ impl ProtocolViewerApp {
                 self.rows = Rc::new(rows);
                 self.tree_lines = Rc::new(tree_lines);
                 self.error = None;
+                self.last_parsed_content = hex_str.to_string();
+                
                 self.tree_state.update(cx, |state, cx| {
                     state.set_items(items, cx);
                 });
@@ -410,6 +432,12 @@ impl ProtocolViewerApp {
                 self.error = Some(e);
                 self.rows = Rc::new(Vec::new());
                 self.tree_lines = Rc::new(Vec::new());
+                self.last_parsed_content = hex_str.to_string();
+                
+                // 清空树状态
+                self.tree_state.update(cx, |state, cx| {
+                    state.set_items(Vec::new(), cx);
+                });
             }
         }
         cx.notify();
@@ -423,7 +451,14 @@ impl ProtocolViewerApp {
     fn update_col_resize(&mut self, current_x: f32, cx: &mut Context<Self>) {
         if let Some((col, ref mut last_x)) = self.drag_state {
             let delta = current_x - *last_x;
-            self.col_widths[col] = MIN_COL_W.max(self.col_widths[col] + delta);
+            self.col_width_offsets[col] += delta;
+            
+            // 确保不会太小
+            let base_width = self.container_width * COL_WIDTH_PERCENT[col];
+            if base_width + self.col_width_offsets[col] < MIN_COL_W {
+                self.col_width_offsets[col] = MIN_COL_W - base_width;
+            }
+            
             *last_x = current_x;
             cx.notify();
         }
@@ -434,6 +469,12 @@ impl ProtocolViewerApp {
             cx.notify();
         }
     }
+    
+    /// 计算实际列宽（百分比 + 偏移）
+    fn calculate_col_width(&self, col: usize) -> f32 {
+        let base = self.container_width * COL_WIDTH_PERCENT[col];
+        (base + self.col_width_offsets[col]).max(MIN_COL_W)
+    }
 }
 
 // ── 渲染 ────────────────────────────────────────────
@@ -443,64 +484,80 @@ impl Render for ProtocolViewerApp {
         // 确保已初始化
         self.ensure_initialized(window, cx);
         
-        let hex_input = self.hex_input.as_ref().expect("hex_input should be initialized");
+        // 更新容器宽度（响应窗口大小变化）
+        let bounds = window.bounds();
+        self.container_width = bounds.size.width.into();
         
+        // 使用内置主题
+        let theme = cx.theme();
+        let colors = &theme.colors;
+        let hex_input = self.hex_input.as_ref().expect("hex_input should be initialized");
         let rows = self.rows.clone();
         let tree_lines = self.tree_lines.clone();
-        let cw = self.col_widths;
+        
+        // 计算实际列宽
+        let cw = [
+            self.calculate_col_width(0),
+            self.calculate_col_width(1),
+            self.calculate_col_width(2),
+        ];
 
-        let line_color = cx.theme().border;
-        let separator_color = cx.theme().border;
+        let line_color = colors.border;
 
         v_flex()
-            .size_full()
-            .gap_2()
-            .p_4()
-            .bg(cx.theme().background)
-            // 输入框 + 按钮
+            .w_full()
+            .h_full()
+            .gap_0()
+            .bg(colors.background)
+            // 顶部输入区域（多行输入，自动增长）
             .child(
-                h_flex()
-                    .gap_2()
-                    .items_center()
-                    .child(Label::new("报文:"))
-                    .child(Input::new(hex_input).flex_1())
-                    .child(
-                        Button::new("parse")
-                            .label("解析")
-                            .on_click(cx.listener(|this, _, _, cx| this.parse(cx))),
-                    ),
+                div()
+                    .w_full()
+                    .px_4()
+                    .py_2()
+                    .flex()
+                    .items_start()
+                    .bg(colors.title_bar)
+                    .border_b_1()
+                    .border_color(colors.border)
+                    .child(Textarea::new(hex_input).w_full()),
             )
-            // 错误信息
+            // 错误信息（如果有）- 紧贴输入框
             .when_some(self.error.clone(), |this, err| {
                 this.child(
                     div()
-                        .p_2()
-                        .bg(cx.theme().status_bar)
-                        .text_color(cx.theme().foreground)
-                        .rounded_md()
+                        .w_full()
+                        .px_4()
+                        .py_2()
+                        .bg(colors.status_bar)
+                        .text_color(colors.foreground)
+                        .border_b_1()
+                        .border_color(colors.border)
                         .child(err),
                 )
             })
             // 表头
             .child(
                 h_flex()
+                    .w_full()
                     .items_stretch()
                     .gap_0()
-                    .h(px(32.))
-                    .bg(cx.theme().background)
-                    .border_1()
-                    .border_color(cx.theme().border)
+                    .h(px(36.))
+                    .bg(colors.title_bar)
+                    .border_b_1()
+                    .border_color(colors.border)
                     // 字段名
                     .child(
                         div()
                             .w(px(cw[0]))
-                            .flex_shrink_0()
+                            .flex_shrink_1()
                             .px_3()
                             .flex()
                             .items_center()
                             .overflow_hidden()
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child(div().truncate().child("字段名")),
+                            .text_color(colors.foreground)
+                            .child(div().truncate().child("Field")),
                     )
                     // 分隔条 0
                     .child(
@@ -508,8 +565,8 @@ impl Render for ProtocolViewerApp {
                             .id(("resize-handle", 0usize))
                             .w(px(4.))
                             .h_full()
-                            .flex_shrink_0()
-                            .bg(separator_color)
+                            .flex_shrink_1()
+                            .bg(colors.border)
                             .cursor(CursorStyle::ResizeLeftRight)
                             .on_mouse_down(
                                 MouseButton::Left,
@@ -523,13 +580,14 @@ impl Render for ProtocolViewerApp {
                     .child(
                         div()
                             .w(px(cw[1]))
-                            .flex_shrink_0()
+                            .flex_shrink_1()
                             .px_3()
                             .flex()
                             .items_center()
                             .overflow_hidden()
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child(div().truncate().child("数据")),
+                            .text_color(colors.foreground)
+                            .child(div().truncate().child("Data")),
                     )
                     // 分隔条 1
                     .child(
@@ -537,8 +595,8 @@ impl Render for ProtocolViewerApp {
                             .id(("resize-handle", 1usize))
                             .w(px(4.))
                             .h_full()
-                            .flex_shrink_0()
-                            .bg(separator_color)
+                            .flex_shrink_1()
+                            .bg(colors.border)
                             .cursor(CursorStyle::ResizeLeftRight)
                             .on_mouse_down(
                                 MouseButton::Left,
@@ -552,13 +610,14 @@ impl Render for ProtocolViewerApp {
                     .child(
                         div()
                             .w(px(cw[2]))
-                            .flex_shrink_0()
+                            .flex_shrink_1()
                             .px_3()
                             .flex()
                             .items_center()
                             .overflow_hidden()
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child(div().truncate().child("说明")),
+                            .text_color(colors.foreground)
+                            .child(div().truncate().child("Description")),
                     ),
             )
             // 树形列表
@@ -566,46 +625,44 @@ impl Render for ProtocolViewerApp {
                 div()
                     .flex_1()
                     .overflow_hidden()
-                    .border_1()
-                    .border_color(cx.theme().border)
-                    .bg(cx.theme().background)
-                    .child(tree(
-                        &self.tree_state,
-                        move |ix, entry, selected, _window, _cx| {
-                            let idx: usize = entry
-                                .item()
-                                .id
-                                .trim_start_matches("row-")
-                                .parse()
-                                .unwrap_or(usize::MAX);
-                            
-                            let (data, desc) = rows
-                                .get(idx)
-                                .map(|r| (r.data.clone(), r.desc.clone()))
-                                .unwrap_or_default();
+                    .bg(colors.background)
+                    .child(tree(&self.tree_state, move |ix, entry, selected, _window, _cx| {
+                        let idx: usize = entry
+                            .item()
+                            .id
+                            .trim_start_matches("row-")
+                            .parse()
+                            .unwrap_or(usize::MAX);
+                        
+                        let (data, desc) = rows
+                            .get(idx)
+                            .map(|r| (r.data.clone(), r.desc.clone()))
+                            .unwrap_or_default();
 
-                            // ── 构建前缀 ──
-                            let prefix = if let Some(tl) = tree_lines.get(idx) {
-                                if tl.has_children {
-                                    // 父节点：祖先延续线 + 连接符（Tree 组件会添加展开/折叠图标）
-                                    build_parent_prefix(tl, line_color)
-                                } else {
-                                    // 叶子节点：完整树线
-                                    build_tree_prefix(tl, line_color)
-                                }
+                        // ── 构建前缀 ──
+                        let prefix = if let Some(tl) = tree_lines.get(idx) {
+                            if tl.has_children {
+                                // 父节点：祖先延续线 + 连接符（Tree 组件会添加展开/折叠图标）
+                                build_parent_prefix(tl, line_color)
                             } else {
-                                h_flex().flex_shrink_0()
-                            };
+                                // 叶子节点：完整树线
+                                build_tree_prefix(tl, line_color)
+                            }
+                        } else {
+                            h_flex().flex_shrink_1()
+                        };
 
-                            ListItem::new(ix).selected(selected).child(
+                        ListItem::new(ix)
+                            .selected(selected)
+                            .child(
                                 h_flex()
-                                    .overflow_hidden()
+                                    .overflow_x_hidden()
                                     // 第一列：前缀 + 字段名
                                     .child(
                                         div()
                                             .w(px(cw[0]))
-                                            .flex_shrink_0()
-                                            .overflow_hidden()
+                                            .flex_shrink_1()
+                                            .overflow_x_hidden()
                                             .child(
                                                 h_flex()
                                                     .items_center()
@@ -621,9 +678,9 @@ impl Render for ProtocolViewerApp {
                                     .child(
                                         div()
                                             .w(px(cw[1]))
-                                            .flex_shrink_0()
+                                            .flex_shrink_1()
                                             .px_2()
-                                            .overflow_hidden()
+                                            .overflow_x_hidden()
                                             .child(div().truncate().child(data)),
                                     )
                                     // 第三列：说明
@@ -632,12 +689,11 @@ impl Render for ProtocolViewerApp {
                                             .flex_1()
                                             .min_w(px(0.))
                                             .px_2()
-                                            .overflow_hidden()
+                                            .overflow_x_hidden()
                                             .child(div().truncate().child(desc)),
                                     ),
                             )
-                        },
-                    )),
+                    })),
             )
             .on_mouse_move(cx.listener(|this, event: &MouseMoveEvent, _, cx| {
                 if this.drag_state.is_some() {

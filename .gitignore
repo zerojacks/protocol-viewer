@@ -9,7 +9,7 @@ web/www/.vite/
 web/www/bun.lockb
 web/www/package-lock.json
 web/www/yarn.lock
-
+web/target
 # 保留文档文件
 !README.md
 !WASM_SETUP.md

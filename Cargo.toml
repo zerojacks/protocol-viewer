@@ -12,14 +12,11 @@ name = "protocol-viewer"
 path = "src/main.rs"
 
 [dependencies]
-# GPUI 框架
-gpui = { git = "https://github.com/zed-industries/zed" }
-gpui_platform = { git = "https://github.com/zed-industries/zed", features = ["font-kit"] }
-gpui-component = { git = "https://github.com/longbridge/gpui-component" }
+# GPUI Kit 框架 - 统一的桌面应用框架
+gpui-kit = "0.6"
 
-# 协议解析器（只需要这一个！）
+# 协议解析器
 protocol-parser = { path = "../protocol-parser/parser" }
 
 # 工具库
 anyhow = "1"
-rfd = "0.14"  # 文件对话框
