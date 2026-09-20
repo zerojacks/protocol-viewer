@@ -4,6 +4,7 @@
 //! `Vec<Row>`，不需要为了展示再重新遍历一次 Value / 再做一次类型转换。
 
 use protocol_parser::FieldValue;
+use std::ops::Range;
 
 /// 一行三栏数据：字段名（按 depth 缩进）、数据（原始字节的十六进制）、说明（解析后的可读值）。
 #[derive(Clone, Debug)]
@@ -16,6 +17,10 @@ pub struct Row {
     pub data: String,
     /// 说明描述（可读值）
     pub desc: String,
+    /// 是否存在子节点，由扁平化阶段一次性计算。
+    pub has_children: bool,
+    /// 节点在去掉分隔符后的原始字节流中的范围。
+    pub raw_range: Range<usize>,
 }
 
 /// 字节数组 -> 不带分隔符的大写十六进制字符串，如 [0x00,0x22] -> "0022"
@@ -75,7 +80,16 @@ fn describe_leaf(v: &FieldValue) -> String {
 ///   - **单条目 Map**：这是包装层，直接跳过，展开其唯一的值（不增加深度）
 ///   - **多条目 Map**：表示多个字段，正常展开所有条目
 /// - `FieldValue::List(items)`：本身不产生行，把内部条目按 **depth+1** 递归摊开
-pub fn flatten(value: &FieldValue, depth: usize, out: &mut Vec<Row>) {
+fn raw_span(value: &FieldValue) -> usize {
+    match value {
+        FieldValue::Node { raw, .. } => raw.len(),
+        FieldValue::Map(entries) => entries.iter().map(|(_, value)| raw_span(value)).sum(),
+        FieldValue::List(items) => items.iter().map(raw_span).sum(),
+        _ => 0,
+    }
+}
+
+fn flatten_at(value: &FieldValue, depth: usize, raw_offset: usize, out: &mut Vec<Row>) {
     match value {
         FieldValue::Node { name, raw, value } => {
             // 检查是否为容器类型（包括嵌套的 Node）
@@ -93,28 +107,34 @@ pub fn flatten(value: &FieldValue, depth: usize, out: &mut Vec<Row>) {
                 } else {
                     describe_leaf(value)
                 },
+                has_children: is_container,
+                raw_range: raw_offset..raw_offset + raw.len(),
             });
             
             if is_container {
-                flatten(value, depth + 1, out);
+                flatten_at(value, depth + 1, raw_offset, out);
             }
         }
         FieldValue::Map(entries) => {
             if entries.len() == 1 {
                 // 单条目 Map：包装层，直接跳过，展开其值（不增加深度）
-                flatten(&entries[0].1, depth, out);
+                flatten_at(&entries[0].1, depth, raw_offset, out);
             } else {
                 // 多条目 Map：表示多个字段，正常展开所有条目
+                let mut child_offset = raw_offset;
                 for (_, v) in entries {
-                    flatten(v, depth, out);
+                    flatten_at(v, depth, child_offset, out);
+                    child_offset += raw_span(v);
                 }
             }
         }
         FieldValue::List(items) => {
             // List 本身不产生行，展开所有项时深度 +1
             // 因为 List 的项是其父 Node 的子节点
+            let mut child_offset = raw_offset;
             for item in items {
-                flatten(item, depth, out);  // 使用传入的 depth，由父 Node 已经 +1 了
+                flatten_at(item, depth, child_offset, out);  // 父 Node 已经增加深度
+                child_offset += raw_span(item);
             }
         }
         // 顶层直接传入一个非 Node 的裸值（理论上 parse_di 总是包一层 Node，
@@ -124,6 +144,8 @@ pub fn flatten(value: &FieldValue, depth: usize, out: &mut Vec<Row>) {
             field: String::new(),
             data: String::new(),
             desc: describe_leaf(other),
+            has_children: false,
+            raw_range: raw_offset..raw_offset,
         }),
     }
 }
@@ -132,6 +154,10 @@ pub fn flatten(value: &FieldValue, depth: usize, out: &mut Vec<Row>) {
 pub fn build_rows(value: &FieldValue) -> Vec<Row> {
     let mut rows = Vec::new();
     // 直接从深度 0 开始展开
-    flatten(value, 0, &mut rows);
+    flatten_at(value, 0, 0, &mut rows);
+    for index in 0..rows.len().saturating_sub(1) {
+        rows[index].has_children = rows[index].has_children
+            || rows[index + 1].depth > rows[index].depth;
+    }
     rows
 }

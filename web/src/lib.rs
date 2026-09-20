@@ -1,8 +1,8 @@
 use wasm_bindgen::prelude::*;
-use gpui::{prelude::*, *};
+use gpui_kit::*;
 use std::borrow::Cow;
 
-// 嵌入中文字体 - Noto Sans SC
+// 嵌入中文字体
 const CHINESE_FONT_DATA: &[u8] = include_bytes!("../fonts/NotoSansSC-Regular.ttf");
 
 #[wasm_bindgen]
@@ -21,14 +21,14 @@ pub fn run() -> Result<(), JsValue> {
 
     // 初始化 WASM 平台
     #[cfg(target_family = "wasm")]
-    gpui_platform::web_init();
+    gpui_kit::platform::web_init();
     
     log::info!("GPUI 平台初始化完成");
     
     // 获取单线程 Web Application
     #[cfg(target_family = "wasm")]
     let app = {
-        let app = gpui_platform::single_threaded_web();
+        let app = gpui_kit::platform::single_threaded_web();
         
         // 临时修复：故意泄漏 Rc<AppCell> 以保持应用程序存活
         struct WasmApplication(std::rc::Rc<AppCell>);
@@ -38,14 +38,14 @@ pub fn run() -> Result<(), JsValue> {
     };
     
     #[cfg(not(target_family = "wasm"))]
-    let app = gpui_platform::application();
+    let app = gpui_kit::platform::application();
 
     log::info!("Application 创建完成");
 
     app.run(|cx: &mut App| {
         log::info!("进入 application run 回调");
         
-        gpui_component::init(cx);
+        gpui_kit::init(cx);
         
         log::info!("gpui_component 初始化完成");
         
@@ -58,8 +58,8 @@ pub fn run() -> Result<(), JsValue> {
         log::info!("✓ 中文字体加载成功");
         
         // 【关键】设置默认字体家族
-        cx.global_mut::<gpui_component::theme::Theme>().font_family = "Noto Sans SC".into();
-        log::info!("✓ 设置默认字体家族为 Noto Sans SC");
+        cx.global_mut::<gpui_kit::component::theme::Theme>().font_family = "SimHei".into();
+        log::info!("✓ 设置默认字体家族为 SimHei");
         
         log::info!("准备打开窗口");
 
@@ -77,7 +77,7 @@ pub fn run() -> Result<(), JsValue> {
             // 直接使用 Root 包装
             cx.new(|cx| {
                 log::info!("创建 Root");
-                gpui_component::Root::new(view, window, cx)
+                gpui_kit::component::Root::new(view, window, cx)
             })
         })
         .expect("Failed to open window");

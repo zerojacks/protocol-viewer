@@ -1,17 +1,70 @@
 import { defineConfig } from 'vite';
-import basicSsl from '@vitejs/plugin-basic-ssl';
+import wasm from 'vite-plugin-wasm';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
+import path from 'path';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const iconsPath = path.resolve(__dirname, '../../assets/assets/icons');
+
+const staticCopyTargets = existsSync(iconsPath)
+  ? [{ src: iconsPath, dest: 'assets' }]
+  : [];
 
 export default defineConfig({
-    base: '/protocol-viewer/',  // GitHub Pages 部署路径
-    plugins: [
-        basicSsl()  // 开发时启用 HTTPS（GPUI WebGL 需要）
-    ],
-    server: {
-        port: 3000,
-        https: true,
+  plugins: [
+    wasm(),
+    viteStaticCopy({
+      targets: staticCopyTargets,
+    }),
+    {
+      name: 'serve-assets',
+      configureServer(server) {
+        server.middlewares.use('/gpui-component/gallery/assets', (req, res, next) => {
+          const assetsPath = path.resolve(__dirname, '../../assets/assets');
+          const filePath = path.join(assetsPath, req.url.replace('/assets', ''));
+
+          // Try to serve the file
+          import('fs').then(({ default: fs }) => {
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+              res.setHeader('Access-Control-Allow-Origin', '*');
+              if (filePath.endsWith('.svg')) {
+                res.setHeader('Content-Type', 'image/svg+xml');
+              }
+              fs.createReadStream(filePath).pipe(res);
+            } else {
+              next();
+            }
+          });
+        });
+      },
     },
-    build: {
-        target: 'esnext',
-        outDir: 'dist',
+  ],
+  build: {
+    target: 'esnext',
+    minify: true,
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
     },
+  },
+  server: {
+    port: 3000,
+    open: true,
+    fs: {
+      strict: false,
+      allow: ['..'],
+    },
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+    },
+  },
+  optimizeDeps: {
+    exclude: ['./src/wasm'],
+  },
+  base: '/',
 });

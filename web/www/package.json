@@ -1,16 +1,17 @@
 {
-  "name": "protocol-viewer-web",
+  "name": "gpui-component-story-web",
+  "version": "0.5.1",
   "private": true,
-  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "wasm": "cargo build --target wasm32-unknown-unknown --release && wasm-bindgen ../../../target/wasm32-unknown-unknown/release/gpui_component_story_web.wasm --out-dir ./src/wasm --target web --no-typescript"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
-    "@vitejs/plugin-basic-ssl": "^1.0.1",
-    "typescript": "^5.0.0"
+    "vite": "^8",
+    "vite-plugin-static-copy": "^3.2.0",
+    "vite-plugin-wasm": "^3.3.0"
   }
 }

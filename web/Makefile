@@ -26,7 +26,7 @@ build-debug:
 		--target web \
 		--out-dir www/pkg \
 		--debug \
-		../../target/wasm32-unknown-unknown/debug/protocol_viewer_web.wasm
+		target/wasm32-unknown-unknown/debug/protocol_viewer_web.wasm
 
 # Release 构建
 build-release:
@@ -36,7 +36,7 @@ build-release:
 		--target web \
 		--out-dir www/pkg \
 		--no-typescript \
-		../../target/wasm32-unknown-unknown/release/protocol_viewer_web.wasm
+		target/wasm32-unknown-unknown/release/protocol_viewer_web.wasm
 	@echo "Building frontend..."
 	@cd www && $(PKG_MANAGER) run build
 	@echo "Build complete! Output in www/dist/"

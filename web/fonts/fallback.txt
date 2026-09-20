@@ -1,0 +1,2 @@
+# Placeholder font file
+# In production, replace with actual font files

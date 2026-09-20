@@ -22,10 +22,8 @@ console_log = "1.0"
 log = "0.4"
 tracing-wasm = "0.2"
 
-# GPUI 和 gpui-component
-gpui = { git = "https://github.com/zed-industries/zed" }
-gpui_platform = { git = "https://github.com/zed-industries/zed", features = ["font-kit"] }
-gpui-component = { git = "https://github.com/longbridge/gpui-component", default-features = false }
+# GPUI Kit（同时提供 GPUI、组件和平台层）
+gpui-kit = { version = "0.6", default-features = false, features = ["component"] }
 
 # 主项目
 protocol-viewer = { path = ".." }

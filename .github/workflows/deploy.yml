@@ -57,7 +57,7 @@ jobs:
             --target web \
             --out-dir www/pkg \
             --no-typescript \
-            ../../target/wasm32-unknown-unknown/release/protocol_viewer_web.wasm
+            target/wasm32-unknown-unknown/release/protocol_viewer_web.wasm
 
       - name: Install frontend dependencies
         run: |

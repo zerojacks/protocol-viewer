@@ -16,7 +16,9 @@ path = "src/main.rs"
 gpui-kit = "0.6"
 
 # 协议解析器
-protocol-parser = { path = "../protocol-parser/parser" }
+protocol-parser = { git = "https://github.com/zerojacks/protocol-parser.git" }
+# protocol-parser = { path = "../protocol-parser/parser" }
+log = "0.4"
 
 # 工具库
 anyhow = "1"
