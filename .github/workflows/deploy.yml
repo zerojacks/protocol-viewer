@@ -11,12 +11,14 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VITE_BASE_PATH: /${{ github.event.repository.name }}/
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,12 +28,12 @@ jobs:
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           target: wasm32-unknown-unknown
           override: true
 
       - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli
+        run: cargo +nightly install wasm-bindgen-cli --version 0.2.126 --locked
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -52,7 +54,7 @@ jobs:
       - name: Build WASM
         run: |
           cd web
-          cargo build --release --target wasm32-unknown-unknown
+          cargo +nightly build --release --target wasm32-unknown-unknown
           wasm-bindgen \
             --target web \
             --out-dir www/pkg \
@@ -75,7 +77,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'web/www/dist'
+          path: web/www/dist
 
   deploy:
     environment:

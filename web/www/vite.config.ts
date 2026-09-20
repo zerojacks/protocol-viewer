@@ -66,5 +66,5 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['./src/wasm'],
   },
-  base: '/',
+  base: process.env.VITE_BASE_PATH || '/',
 });
