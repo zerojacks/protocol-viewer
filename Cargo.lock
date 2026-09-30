@@ -1326,6 +1326,7 @@ dependencies = [
 [[package]]
 name = "csg-local-comm"
 version = "0.1.0"
+source = "git+https://github.com/zerojacks/protocol-parser.git#199cfadcc7f8cf46e8542f22165e36c951605ebf"
 dependencies = [
  "proto-common",
  "spec-engine",
@@ -1334,6 +1335,7 @@ dependencies = [
 [[package]]
 name = "csg1209022"
 version = "0.1.0"
+source = "git+https://github.com/zerojacks/protocol-parser.git#199cfadcc7f8cf46e8542f22165e36c951605ebf"
 dependencies = [
  "proto-common",
  "spec-engine",
@@ -1490,6 +1492,7 @@ dependencies = [
 [[package]]
 name = "dlt645-2007"
 version = "0.1.0"
+source = "git+https://github.com/zerojacks/protocol-parser.git#199cfadcc7f8cf46e8542f22165e36c951605ebf"
 dependencies = [
  "proto-common",
  "spec-engine",
@@ -5145,6 +5148,7 @@ dependencies = [
 [[package]]
 name = "proto-common"
 version = "0.1.0"
+source = "git+https://github.com/zerojacks/protocol-parser.git#199cfadcc7f8cf46e8542f22165e36c951605ebf"
 dependencies = [
  "spec-engine",
  "thiserror 1.0.69",
@@ -5153,6 +5157,7 @@ dependencies = [
 [[package]]
 name = "protocol-parser"
 version = "0.1.0"
+source = "git+https://github.com/zerojacks/protocol-parser.git#199cfadcc7f8cf46e8542f22165e36c951605ebf"
 dependencies = [
  "csg-local-comm",
  "csg1209022",
