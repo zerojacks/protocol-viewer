@@ -13,11 +13,11 @@ path = "src/main.rs"
 
 [dependencies]
 # GPUI Kit 框架 - 统一的桌面应用框架
-gpui-kit = "0.6"
+gpui-kit = "0.6.6"
 
 # 协议解析器
-protocol-parser = { git = "https://github.com/zerojacks/protocol-parser.git" }
-# protocol-parser = { path = "../protocol-parser/parser" }
+#protocol-parser = { git = "https://github.com/zerojacks/protocol-parser.git" }
+protocol-parser = { path = "../protocol-parser/parser" }
 log = "0.4"
 
 # 工具库

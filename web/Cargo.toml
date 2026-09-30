@@ -23,7 +23,7 @@ log = "0.4"
 tracing-wasm = "0.2"
 
 # GPUI Kit（同时提供 GPUI、组件和平台层）
-gpui-kit = { version = "0.6", default-features = false, features = ["component"] }
+gpui-kit = { version = "0.6.6", default-features = false, features = ["component"] }
 
 # 主项目
 protocol-viewer = { path = ".." }
