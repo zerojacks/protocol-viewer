@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Protocol Viewer
+Comment=Inspect parsed power communication protocol frames
+Exec=protocol-viewer
+Terminal=false
+Categories=Utility;

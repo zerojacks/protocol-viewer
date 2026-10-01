@@ -1,283 +1,137 @@
 # Protocol Viewer
 
-基于 GPUI 的协议解析结果可视化工具，支持树形结构展示和可调整列宽。
+Protocol Viewer 是一个用于查看电力通信报文解析结果的工具，提供 **桌面版**和 **浏览器版**。输入十六进制报文后，程序会自动识别协议并将解析结果显示为可交互的树形结构。
 
-🌐 **在线体验**: [https://YOUR_USERNAME.github.io/protocol-viewer/](https://YOUR_USERNAME.github.io/protocol-viewer/)
+- **在线体验：**[https://zerojacks.github.io/protocol-viewer/](https://zerojacks.github.io/protocol-viewer/)
+- **GitHub 仓库：**[zerojacks/protocol-viewer](https://github.com/zerojacks/protocol-viewer)
 
-## 版本
+## 功能
 
-- 🖥️ **桌面版** - 原生应用，完整功能（本仓库）
-- 🌐 **Web 版** - WebAssembly，浏览器运行（[在线访问](https://YOUR_USERNAME.github.io/protocol-viewer/)）
-
-## 功能特性
-
-✅ **自动协议识别** - 自动检测 DLT645、CSG1209022、CSG 本地通信协议  
-✅ **树形结构展示** - 分层显示解析结果，支持展开/折叠  
-✅ **可调列宽** - 鼠标拖动分隔条调整三列宽度  
-✅ **树线连接** - 视觉化显示层级关系（├── 和 └──）  
-✅ **实时解析** - 输入十六进制报文即时解析展示  
-✅ **浏览器支持** - 无需安装，在线使用  
-
-## 界面布局
-
-```
-┌─────────────────────────────────────────────────────────┐
-│ 报文: [十六进制输入框........................] [解析]  │
-├─────────────────────────────────────────────────────────┤
-│  字段名            │  数据          │  说明             │
-├─────────────────────────────────────────────────────────┤
-│ ├── 链路层          │                │                   │
-│ │   ├── 起始符      │ 68H            │ 固定值            │
-│ │   ├── 长度域      │ 0049H          │ 73字节            │
-│ │   └── 控制字节    │ 40H            │ 下行主站          │
-│ ├── 应用层          │                │                   │
-│ │   ├── AFN         │ 04H            │ 数据转发          │
-│ │   ├── SEQ         │ 17             │ 帧序列号          │
-│ │   └── DI          │ E8020402H      │ 集中器            │
-│ └── 数据域          │ [60 bytes]     │ 实际数据内容       │
-└─────────────────────────────────────────────────────────┘
-```
-
-## 使用方法
-
-### 🌐 Web 版（推荐新手）
-
-1. **在线访问**
-   
-   直接访问 [https://YOUR_USERNAME.github.io/protocol-viewer/](https://YOUR_USERNAME.github.io/protocol-viewer/)
-   
-   无需安装任何工具！
-
-2. **本地运行 Web 版**
-   
-   ```bash
-   cd web
-   make install  # 首次运行，安装依赖
-   make dev      # 启动开发服务器
-   ```
-   
-   访问 https://localhost:3000
-
-### 🖥️ 桌面版
-
-#### 1. 构建运行
-
-```bash
-cd /d/ProjackSpace/projectspace/protocol-viewer
-cargo run
-```
-
-#### 2. 输入报文
-
-在输入框中粘贴十六进制报文（可以带空格）：
-
-```
-68 49 00 40 04 11 02 04 02 E8 0A 18 39 36 00 19 00 50 39 36 00 19 00 07 09 37 00 19 00 85 31 39 00 19 00 35 24 45 00 20 00 48 24 45 00 20 00 27 52 46 00 20 00 24 56 46 00 20 00 18 58 46 00 20 00 26 77 46 00 20 00 56 16
-```
-
-#### 3. 点击解析
-
-点击"解析"按钮，程序会：
-1. 自动识别协议类型
-2. 解析报文结构
-3. 以树形结构展示结果
-
-#### 4. 调整列宽
-
-- 鼠标移动到列分隔条（竖线）
-- 光标变为 ↔️
-- 按住左键拖动调整宽度
+- 自动检测并解析支持的协议报文。
+- 输入内容变化时即时解析，并以树形结构展示字段层级。
+- 展开或折叠包含子字段的节点。
+- 点击解析结果中的字段，在输入区定位并选中对应报文字节。
+- 拖动分隔条调整“帧域 / 数据 / 说明”三列宽度。
+- 位字段显示提取出的 bit 值及其语义说明；选择位字段时可定位到对应报文字节。
+- 输入格式错误或报文解析失败时显示错误信息。
 
 ## 支持的协议
 
-### Q/CSG1209021-2019 (CSG 本地通信)
+协议识别、解码和解析树转换由 [`protocol-parser`](https://github.com/zerojacks/protocol-parser) 提供。目前集成的协议包括：
 
-完整支持，包括：
-- 链路层（起始符、长度、控制字节）
-- 应用层（AFN、SEQ、DI）
-- 数据域（根据 DI 解析）
+- DL/T 645-2007
+- Q/CSG1209022-2019
+- Q/CSG1209021-2019（南网本地通信协议）
 
-### DL/T 645-2007
+能否成功解析仍取决于报文是否符合相应协议格式，以及解析器所含的协议定义。
 
-暂不支持树形展示（功能开发中）
+## 使用
 
-### Q/CSG1209022-2019
+### 在线使用
 
-暂不支持树形展示（功能开发中）
+打开 [在线体验页面](https://zerojacks.github.io/protocol-viewer/)，在顶部输入框粘贴十六进制报文。程序会在输入变化时自动解析，无需点击单独的解析按钮。点击树中的字段可在输入内容中选中对应字节。
 
-## 树形展示规则
+### 本地运行桌面版
 
-### 父节点
+需要安装 [Rust](https://www.rust-lang.org/tools/install)。仓库使用 Rust nightly 工具链；通过 rustup 执行 Cargo 命令时会按项目配置选择该工具链。
 
-有子节点的行会：
-- 显示展开/折叠图标 (▼/▶)
-- 可以点击展开或折叠
-- 初始状态为展开
+在仓库根目录运行：
 
-### 叶子节点
-
-无子节点的行会：
-- 显示树线连接符（├── 或 └──）
-- 根据是否为最后一个子节点选择不同连接符
-- 显示具体的数据值
-
-### 树线样式
-
-```
-├── 中间节点 (有后续兄弟)
-│   ├── 子节点1
-│   └── 子节点2
-└── 最后节点 (无后续兄弟)
-    ├── 子节点A
-    └── 子节点B
+```sh
+cargo run
 ```
 
-## 三列说明
+构建桌面程序：
 
-| 列名   | 内容           | 说明                        |
-|--------|----------------|----------------------------|
-| 字段名 | 字段标识        | 如"起始符"、"AFN"、"DI"等   |
-| 数据   | 实际值          | 普通字段是原始字节的十六进制；按 bit 拆出来的位字段是**这一段 bit 的取值**（单 bit 显示 `0`/`1`，D3~D0 这种区间显示提取出来的数值） |
-| 说明   | 描述信息        | 字段含义、取值范围等；位字段在这里显示这一段 bit 的语义（如 D7=1 → "终端发出的上行报文"） |
+```sh
+cargo build --release
+```
 
-位字段子项（控制域C / 命令序号SEQ 下的 D7…D3~D0，以及 DI 内容里的 bitmask/bitfield）
-在"数据"列不会显示成所在字节（比如整字节 `C4`），也不会留空：数据列给这一段 bit 的
-取值（`Bit.bit_value`），说明列给语义描述（`Bit.value`）。
+### 本地运行 Web 版
 
-位字段自己不带原始字节（`Node.raw` 按约定留空），位置由 `Bit.bit_byte` 决定：
-- 按 `bit_start` 推出的字节下标（`bit_start / 8`）能对上时直接用；
-- 对不上时（spec-engine 的 bitmask 里 `bit_start` 相对的是它自己那个字节）就在所在
-  数据块的原始字节里找 `bit_byte` 的那个字节。
+Web 版使用 Rust/WASM 和 Vite。需要安装 Rust nightly、Bun（或 Node.js/npm），并安装 `wasm-bindgen-cli` **0.2.126**。在仓库根目录执行：
 
-所以点击任意一个位字段子项，右侧报文输入框里高亮的是**它所在的那一个字节**；多字节
-位图块（如 DI `E3010006` 待升级电表地址列表，256 字节）里的每个 bit 也各自指向自己的
-字节，不会都挤在块首。已知限制：块内出现完全相同的字节值时取最靠前的一个。
+```sh
+rustup target add wasm32-unknown-unknown --toolchain nightly
+cargo +nightly install wasm-bindgen-cli --version 0.2.126 --locked
+```
 
-## 快捷键
+构建 WASM 并生成浏览器绑定：
 
-暂无快捷键（待扩展）
+```sh
+cd web
+cargo +nightly build --release --target wasm32-unknown-unknown
+wasm-bindgen --target web --out-dir www/pkg --no-typescript target/wasm32-unknown-unknown/release/protocol_viewer_web.wasm
+```
+
+安装前端依赖并启动开发服务器：
+
+```sh
+cd www
+npm install
+npm run dev
+```
+
+终端会显示本地访问地址，默认端口为 `3000`。使用 Bun 时，可将 `npm install` / `npm run dev` 分别替换为 `bun install` / `bun run dev`。
+
+生成静态生产文件：完成 WASM 生成后，在 `web/www` 目录运行：
+
+```sh
+npm run build
+```
+
+构建产物位于 `web/www/dist/`。
+
+## 报文输入格式
+
+输入十六进制字节，可使用空格、换行、冒号或连字符分隔，也可连续输入。例如以下几种写法都可识别：
+
+```text
+68 0C 00 80 00 01 01 00 01 E8 6B 16
+68:0C:00:80:00:01:01:00:01:E8:6B:16
+680C00800001010001E86B16
+```
+
+输入不能为空；十六进制字符数量必须为偶数，且报文必须符合受支持协议的帧格式。
+
+## GitHub Pages 部署
+
+仓库的 [GitHub Actions 部署工作流](.github/workflows/deploy.yml)会在向 `main` 或 `master` 分支推送时构建并部署 Web 版，也可在 Actions 页面手动触发。
+
+首次部署前，请在仓库 **Settings → Pages** 中将部署来源设为 **GitHub Actions**。部署完成后访问：
+
+[https://zerojacks.github.io/protocol-viewer/](https://zerojacks.github.io/protocol-viewer/)
+
+## 桌面版发行
+
+向仓库推送以 `v` 开头的版本标签（例如 `v1.0.0`），[桌面版发布工作流](.github/workflows/release.yml)会构建并发布 Linux x86_64 的 `.deb` 安装包、Windows x86_64 的 setup 安装程序，以及 macOS Intel 和 Apple Silicon 的 `.dmg` 安装镜像。首次发布前，请确认仓库 Actions 设置允许工作流创建 Release。
+
+在 GitHub 的 Releases 页面下载对应平台的安装包。Linux 可使用系统软件包管理器安装 `.deb`；Windows 运行 setup 安装程序；macOS 打开 `.dmg` 并将应用拖入“应用程序”。当前 macOS 构建未签名或公证，首次打开时系统可能会显示安全确认提示。
+
+## 项目结构
+
+```text
+protocol-viewer/
+├── src/
+│   ├── app.rs       # 桌面与 Web 共用的界面、输入解析及树形交互
+│   ├── row.rs       # 将解析器的 FieldValue 树转换为展示行
+│   ├── lib.rs       # 共享库导出
+│   └── main.rs      # 桌面应用入口
+├── examples/        # 报文解析示例
+├── web/
+│   ├── src/         # WebAssembly 应用入口
+│   └── www/         # Vite 前端及静态页面
+├── packaging/
+│   ├── linux/      # Debian 安装包和桌面入口
+│   ├── macos/      # .app 与 DMG 打包脚本
+│   └── windows/    # Windows 安装程序配置
+└── .github/workflows/
+    ├── deploy.yml   # GitHub Pages 自动部署
+    └── release.yml  # 桌面版多平台构建与发布
+```
 
 ## 技术栈
 
-- **GPUI** - Zed 编辑器的 UI 框架
-- **gpui-component** - GPUI 组件库
-- **protocol-parser** - 多协议解析器
-- **spec-engine** - DI 数据标识解析引擎
-
-## 架构设计
-
-```
-protocol-viewer/
-├── src/
-│   ├── main.rs       # 入口，窗口初始化
-│   ├── app.rs        # 主界面逻辑
-│   └── row.rs        # FieldValue → Row 转换
-├── Cargo.toml
-└── README.md
-```
-
-### 数据流
-
-```
-用户输入
-  ↓
-hex_bytes
-  ↓
-protocol-parser::auto_parse()
-  ↓
-ParsedMessage
-  ↓
-FieldValue 树
-  ↓
-Row 列表
-  ↓
-TreeItem 树
-  ↓
-GPUI 渲染
-```
-
-## 示例报文
-
-### CSG 本地通信帧
-
-```
-68 49 00 40 04 11 02 04 02 E8 0A 18 39 36 00 19 00 50 39 36 00 19 00 07 09 37 00 19 00 85 31 39 00 19 00 35 24 45 00 20 00 48 24 45 00 20 00 27 52 46 00 20 00 24 56 46 00 20 00 18 58 46 00 20 00 26 77 46 00 20 00 56 16
-```
-
-- 协议：Q/CSG1209021-2019
-- AFN：04H (数据转发)
-- DI：E8020402H (集中器)
-- 数据：60 字节
-
-### 简单测试帧
-
-```
-68 0C 00 80 00 01 01 00 01 E8 6B 16
-```
-
-- 协议：Q/CSG1209021-2019
-- AFN：00H (确认/否认)
-- DI：E8010001H
-
-## 扩展功能（规划）
-
-- [ ] 支持 DLT645 和 CSG1209022 树形展示
-- [ ] 导出解析结果为 PNG 图片
-- [ ] 导出解析结果为 JSON
-- [ ] 保存/加载报文历史记录
-- [ ] 语法高亮（字段名、数据、说明不同颜色）
-- [ ] 搜索/过滤功能
-- [ ] 快捷键支持
-- [ ] 深色/浅色主题切换
-
-## 部署到 GitHub Pages
-
-详细部署指南请查看 [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
-
-快速步骤：
-1. 创建 GitHub 仓库
-2. 连接本地仓库：`git remote add origin https://github.com/YOUR_USERNAME/protocol-viewer.git`
-3. 推送代码：`git push -u origin main`
-4. 在仓库 Settings → Pages 中启用 GitHub Actions
-5. 等待自动部署完成
-
-更多细节：
-- Web 版本文档：[web/README.md](web/README.md)
-- WASM 配置指南：[WASM_SETUP.md](WASM_SETUP.md)
-
-## 常见问题
-
-### Q: 为什么有些协议不支持树形展示？
-
-A: DLT645 和 CSG1209022 需要原始字节才能完整渲染，目前只有 CSG 本地通信协议实现了 `render_message_as_value()` 函数。
-
-### Q: 如何调整列宽？
-
-A: 鼠标移动到列之间的分隔条，光标变为 ↔️ 后按住左键拖动。
-
-### Q: 支持哪些报文格式？
-
-A: 十六进制字符串，可以带空格、冒号或连字符分隔，例如：
-- `68 49 00 40 ...`
-- `68:49:00:40:...`
-- `68-49-00-40-...`
-- `68490040...`
-
-### Q: 解析失败怎么办？
-
-A: 检查：
-1. 报文格式是否正确（偶数个十六进制字符）
-2. 报文是否完整（起始符 68H 到结束符 16H）
-3. 校验和是否正确
-4. 协议类型是否支持
-
-## 许可证
-
-MIT License
-
-## 相关项目
-
-- [protocol-parser](../protocol-parser/) - 多协议解析器
-- [spec-engine](https://github.com/zerojacks/spec-engine) - DI 解析引擎
-- [GPUI](https://github.com/zed-industries/zed) - Zed UI 框架
-- [gpui-component](https://github.com/longbridge/gpui-component) - GPUI 组件库
+- Rust 与 GPUI Kit：共享 UI 和桌面应用。
+- `protocol-parser`：协议自动识别、报文解析和解析树生成。
+- WebAssembly、`wasm-bindgen` 与 Vite：浏览器版本及静态资源构建。
